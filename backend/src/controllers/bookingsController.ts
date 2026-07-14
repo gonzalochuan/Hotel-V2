@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express'
 import { HttpError } from '../middleware/errorHandler.js'
 import * as bookingsService from '../services/bookingsService.js'
-import * as roomsService from '../services/roomsService.js'
 import { sendBookingConfirmationEmail } from '../services/emailService.js'
 import type { BookingInput } from '../types/booking.js'
 
@@ -48,8 +47,7 @@ export async function postBooking(req: Request, res: Response) {
 
   const email = req.user!.email
   if (email) {
-    const room = await roomsService.getRoomById(input.roomId).catch(() => null)
-    sendBookingConfirmationEmail({ to: email, roomName: room?.name ?? 'Your room', booking }).catch((err) => {
+    sendBookingConfirmationEmail({ to: email, roomName: booking.roomName ?? 'Your room', booking }).catch((err) => {
       console.error('Failed to send booking confirmation email:', err)
     })
   }

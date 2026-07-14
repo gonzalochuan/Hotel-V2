@@ -16,13 +16,21 @@ interface BookingRow {
   total: number
   status: string
   created_at: string
+  rooms: { name: string; room_images: { url: string; is_primary: boolean; sort_order: number }[] } | null
 }
 
 function mapBooking(row: BookingRow): Booking {
+  const images = row.rooms?.room_images ?? []
+  const primaryImage = [...images].sort(
+    (a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order,
+  )[0]
+
   return {
     id: row.id,
     userId: row.user_id,
     roomId: row.room_id,
+    roomName: row.rooms?.name ?? null,
+    roomImage: primaryImage?.url ?? null,
     checkIn: row.check_in,
     checkOut: row.check_out,
     adults: row.adults,
@@ -36,6 +44,8 @@ function mapBooking(row: BookingRow): Booking {
     createdAt: row.created_at,
   }
 }
+
+const BOOKING_SELECT = '*, rooms(name, room_images(url, is_primary, sort_order))'
 
 export async function createBooking(
   accessToken: string,
@@ -59,11 +69,11 @@ export async function createBooking(
       taxes: input.taxes,
       total: input.total,
     })
-    .select('*')
+    .select(BOOKING_SELECT)
     .single()
 
   if (error) throw error
-  return mapBooking(data as BookingRow)
+  return mapBooking(data as unknown as BookingRow)
 }
 
 export async function listMyBookings(accessToken: string): Promise<Booking[]> {
@@ -71,9 +81,9 @@ export async function listMyBookings(accessToken: string): Promise<Booking[]> {
 
   const { data, error } = await client
     .from('bookings')
-    .select('*')
+    .select(BOOKING_SELECT)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data as BookingRow[]).map(mapBooking)
+  return (data as unknown as BookingRow[]).map(mapBooking)
 }

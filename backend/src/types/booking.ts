@@ -8,6 +8,8 @@ export interface Booking {
   id: string
   userId: string
   roomId: string | null
+  roomName: string | null
+  roomImage: string | null
   checkIn: string
   checkOut: string
   adults: number

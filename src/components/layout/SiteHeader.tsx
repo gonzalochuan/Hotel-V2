@@ -1,14 +1,18 @@
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { brandName, navigationItems } from '../../constants/landingContent';
 import { useBookingFlow } from '../../context/BookingFlowContext';
+import { useAuth } from '../../context/AuthContext';
 import { MotionDrawer } from '../ui/MotionDrawer';
 import { PrimaryButton } from '../ui/PrimaryButton';
+import { AccountDrawer } from './AccountDrawer';
 
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const { open: openBooking } = useBookingFlow();
+  const { session } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
@@ -59,6 +63,16 @@ export function SiteHeader() {
             <ArrowUpRight size={19} strokeWidth={1.8} />
           </a>
           <button
+            className={`grid h-12 w-12 place-items-center rounded-full border transition ${
+              session ? 'border-ink bg-ink text-linen hover:bg-palm' : 'border-ink text-ink hover:bg-ink hover:text-linen'
+            }`}
+            type="button"
+            aria-label="Account"
+            onClick={() => setIsAccountOpen(true)}
+          >
+            <User size={20} strokeWidth={1.8} />
+          </button>
+          <button
             className="grid h-12 w-12 place-items-center rounded-full bg-ink text-linen transition hover:bg-palm"
             type="button"
             aria-label="Open menu"
@@ -68,6 +82,8 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
+
+      <AccountDrawer isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
 
       <MotionDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} direction="right" width={420}>
         <div className="flex h-full flex-col p-8 sm:p-10">

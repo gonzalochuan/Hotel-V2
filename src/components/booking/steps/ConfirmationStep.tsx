@@ -1,7 +1,13 @@
-import { CheckCircle2, ChevronLeft } from 'lucide-react';
-import { useState } from 'react';
-import { enhancements, roomOptions } from '../../../constants/bookingContent';
+import { CheckCircle2, ChevronLeft, Loader2, LogOut } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { enhancements, TAX_RATE } from '../../../constants/bookingContent';
+import { useRoomsCatalog } from '../../../context/RoomsCatalogContext';
+import { useAuth } from '../../../context/AuthContext';
+import { createBooking } from '../../../services/bookingsApi';
+import { PaymentMethodSection, type CardDetails, type PaymentMethod } from './PaymentMethodSection';
 import type { GuestDetails } from './DetailsStep';
+
+const EMPTY_CARD_DETAILS: CardDetails = { name: '', number: '', expiry: '', cvv: '' };
 
 const MONTH_LABELS = [
   'January',
@@ -48,14 +54,89 @@ export function ConfirmationStep({
   onBack,
   onClose,
 }: ConfirmationStepProps) {
+  const { rooms: roomOptions } = useRoomsCatalog();
+  const { session, signInWithGoogle, signOut } = useAuth();
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [cardDetails, setCardDetails] = useState<CardDetails>(EMPTY_CARD_DETAILS);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const pendingConfirmRef = useRef(false);
 
   const room = roomOptions.find((option) => option.id === roomId) ?? roomOptions[0];
   const nights =
     arrival && departure ? Math.round((departure.getTime() - arrival.getTime()) / (1000 * 60 * 60 * 24)) : 0;
   const pickedEnhancements = enhancements.filter((item) => selectedEnhancements.includes(item.id));
   const enhancementsTotal = pickedEnhancements.reduce((sum, item) => sum + item.price, 0);
-  const total = nights * room.price * rooms + enhancementsTotal;
+  const subtotal = nights * room.price * rooms;
+  const taxesAndFees = Math.round(subtotal * TAX_RATE);
+  const total = subtotal + taxesAndFees + enhancementsTotal;
+
+  const submitBooking = async (accessToken: string) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await createBooking(
+        {
+          roomId: room.id,
+          checkIn: arrival ? arrival.toISOString().slice(0, 10) : '',
+          checkOut: departure ? departure.toISOString().slice(0, 10) : '',
+          adults,
+          children: childrenCount,
+          roomsCount: rooms,
+          enhancements: pickedEnhancements.map((item) => ({ id: item.id, label: item.label, price: item.price })),
+          subtotal,
+          taxes: taxesAndFees,
+          total,
+        },
+        accessToken,
+      );
+      setIsConfirmed(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to confirm booking');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validatePayment = (): string | null => {
+    if (!paymentMethod) return 'Select a payment method to continue.';
+    if (paymentMethod === 'visa' || paymentMethod === 'mastercard') {
+      if (!cardDetails.name.trim()) return 'Enter the name on the card.';
+      if (cardDetails.number.replace(/\s/g, '').length < 12) return 'Enter a valid card number.';
+      if (!/^\d{2}\/\d{2}$/.test(cardDetails.expiry.trim())) return 'Enter expiry as MM/YY.';
+      if (!/^\d{3,4}$/.test(cardDetails.cvv.trim())) return 'Enter a valid CVV.';
+    }
+    return null;
+  };
+
+  const handleConfirm = async () => {
+    const validationMessage = validatePayment();
+    if (validationMessage) {
+      setPaymentError(validationMessage);
+      return;
+    }
+    setPaymentError(null);
+
+    if (!session) {
+      pendingConfirmRef.current = true;
+      await signInWithGoogle();
+      return;
+    }
+
+    await submitBooking(session.access_token);
+  };
+
+  // Once sign-in completes (popup closes, session appears), automatically
+  // finish the booking the user was already trying to confirm — no second click.
+  useEffect(() => {
+    if (session && pendingConfirmRef.current) {
+      pendingConfirmRef.current = false;
+      void submitBooking(session.access_token);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   if (isConfirmed) {
     return (
@@ -143,19 +224,61 @@ export function ConfirmationStep({
             <p className="mt-3 text-sm text-ink/50">None selected</p>
           )}
 
-          <div className="mt-auto flex items-center justify-between border-t border-ink/10 pt-5">
+          <div className="mt-5 flex flex-col gap-2 border-t border-ink/10 pt-5 text-sm text-ink/70">
+            <div className="flex items-center justify-between">
+              <span>
+                {nights} night{nights !== 1 ? 's' : ''} × {rooms} room{rooms > 1 ? 's' : ''}
+              </span>
+              <span>PHP {subtotal.toLocaleString('en-PH')}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Taxes &amp; fees</span>
+              <span>PHP {taxesAndFees.toLocaleString('en-PH')}</span>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-5">
             <p className="text-sm font-bold uppercase tracking-[0.15em] text-ink/50">
               Total, {nights} night{nights !== 1 ? 's' : ''}
             </p>
             <p className="text-2xl font-light">PHP {total.toLocaleString('en-PH')}</p>
           </div>
 
+          <PaymentMethodSection
+            method={paymentMethod}
+            onChangeMethod={(next) => {
+              setPaymentMethod(next);
+              setPaymentError(null);
+            }}
+            cardDetails={cardDetails}
+            onChangeCardDetails={setCardDetails}
+          />
+
+          {paymentError ? <p className="mt-3 text-sm text-coral">{paymentError}</p> : null}
+
+          {session ? (
+            <div className="mt-5 flex items-center justify-between text-xs text-ink/50">
+              <span>Signed in as {session.user.email}</span>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="flex items-center gap-1 font-bold uppercase tracking-wide hover:text-palm"
+              >
+                <LogOut size={13} /> Sign out
+              </button>
+            </div>
+          ) : null}
+
+          {submitError ? <p className="mt-3 text-sm text-coral">{submitError}</p> : null}
+
           <button
             type="button"
-            onClick={() => setIsConfirmed(true)}
-            className="mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ink text-base font-bold text-linen transition hover:bg-palm"
+            onClick={() => void handleConfirm()}
+            disabled={isSubmitting}
+            className="mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ink text-base font-bold text-linen transition hover:bg-palm disabled:opacity-60"
           >
-            Confirm Booking
+            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : null}
+            {isSubmitting ? 'Confirming…' : session ? 'Confirm Booking' : 'Sign in with Google to Confirm'}
           </button>
         </div>
       </div>

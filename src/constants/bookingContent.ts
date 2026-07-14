@@ -28,14 +28,9 @@ export type Enhancement = {
   icon: LucideIcon;
 };
 
-export const roomOptions: RoomOption[] = content.rooms.map((room) => ({
-  ...room,
-  amenities: room.amenities.map((amenity) => ({ ...amenity, icon: resolveIcon(amenity.icon) })),
-}));
-
 export const enhancements: Enhancement[] = content.enhancements.map((item) => ({
   ...item,
   icon: resolveIcon(item.icon),
 }));
 
-export const fromRatePerNight = Math.min(...roomOptions.map((room) => room.price));
+export const TAX_RATE = 0.12;

@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { fromRatePerNight } from '../../../constants/bookingContent';
+import { useRoomsCatalog } from '../../../context/RoomsCatalogContext';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = [
@@ -62,6 +62,7 @@ function MonthGrid({
   arrival,
   departure,
   onPick,
+  fromRatePerNight,
 }: {
   year: number;
   month: number;
@@ -69,6 +70,7 @@ function MonthGrid({
   arrival: Date | null;
   departure: Date | null;
   onPick: (date: Date) => void;
+  fromRatePerNight: number;
 }) {
   const cells = getMonthCells(year, month);
 
@@ -139,6 +141,7 @@ export function CalendarStep({
   onChangeGroupCode,
   onContinue,
 }: CalendarStepProps) {
+  const { fromRatePerNight } = useRoomsCatalog();
   const today = useMemo(() => startOfDay(new Date()), []);
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -171,6 +174,7 @@ export function CalendarStep({
             arrival={arrival}
             departure={departure}
             onPick={handlePick}
+            fromRatePerNight={fromRatePerNight}
           />
           <button
             type="button"
@@ -187,6 +191,7 @@ export function CalendarStep({
             arrival={arrival}
             departure={departure}
             onPick={handlePick}
+            fromRatePerNight={fromRatePerNight}
           />
         </div>
 

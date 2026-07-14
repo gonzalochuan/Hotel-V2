@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronLeft, Check, Expand, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { roomOptions } from '../../../constants/bookingContent';
+import { useRoomsCatalog } from '../../../context/RoomsCatalogContext';
 
 const MONTH_LABELS = [
   'January',
@@ -45,12 +45,24 @@ export function RoomStep({
   onEditDates,
   onSelectRoom,
 }: RoomStepProps) {
+  const { rooms: roomOptions, loading, error } = useRoomsCatalog();
   const [roomType, setRoomType] = useState('All room types');
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
 
-  const roomTypes = useMemo(() => ['All room types', ...new Set(roomOptions.map((room) => room.roomType))], []);
+  const roomTypes = useMemo(
+    () => ['All room types', ...new Set(roomOptions.map((room) => room.roomType))],
+    [roomOptions],
+  );
   const visibleRooms =
     roomType === 'All room types' ? roomOptions : roomOptions.filter((room) => room.roomType === roomType);
+
+  if (loading) {
+    return <p className="px-5 py-10 text-center text-sm text-ink/60 sm:px-8">Loading rooms…</p>;
+  }
+
+  if (error) {
+    return <p className="px-5 py-10 text-center text-sm text-red-600 sm:px-8">Failed to load rooms: {error}</p>;
+  }
 
   return (
     <div className="mx-auto max-w-[1680px] sm:px-8 lg:px-14">

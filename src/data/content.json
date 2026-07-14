@@ -1,0 +1,212 @@
+{
+  "brandName": "Delightful Philippines",
+  "navigationItems": ["Homes", "Suites", "Experiences", "About"],
+  "amenities": [
+    "Ocean-view breakfasts",
+    "Airport and pier transfers",
+    "Private island tours",
+    "Family-ready rooms"
+  ],
+  "heroTrailImages": ["/image/hotel5.jpg", "/image/hotel7.jpg", "/image/hotel8.jpg"],
+  "featuredStayPanels": [
+    {
+      "type": "split",
+      "items": [
+        { "label": "Suites", "image": "/image/hotel.jpg" },
+        { "label": "Rooms", "image": "/image/hotel2.jpg" }
+      ]
+    },
+    { "type": "video", "label": "Experience", "src": "/video/hotelvid.mp4" },
+    {
+      "type": "split",
+      "items": [
+        { "label": "Villas", "image": "/image/hotel3.jpg" },
+        { "label": "Pool", "image": "/image/hotel4.jpg" }
+      ]
+    },
+    { "type": "video", "label": "Dining", "src": "/video/hotelvid2.mp4" },
+    {
+      "type": "split",
+      "items": [
+        { "label": "Spa", "image": "/image/hotel5.jpg" },
+        { "label": "Views", "image": "/image/hotel6.jpg" }
+      ]
+    },
+    { "type": "video", "label": "Arrival", "src": "/video/hotelvid3.mp4" }
+  ],
+  "bookingProcessSteps": [
+    { "icon": "CalendarDays", "label": "Pick your dates" },
+    { "icon": "BedDouble", "label": "Choose your room" },
+    { "icon": "Sparkles", "label": "Add enhancements" },
+    { "icon": "CheckCircle2", "label": "Confirm your stay" }
+  ],
+  "bookingFlowSteps": [
+    { "id": 1, "label": "Calendar" },
+    { "id": 2, "label": "Room & Rate Selection" },
+    { "id": 3, "label": "Enhancements & Details" },
+    { "id": 4, "label": "Confirmation" }
+  ],
+  "footer": {
+    "exploreLinks": [
+      { "label": "About Us", "href": "#about" },
+      { "label": "Contact Us", "href": "mailto:hello@delightful.ph" },
+      { "label": "Press & Media", "href": "#" },
+      { "label": "Careers", "href": "#" },
+      { "label": "Island Events", "href": "#" }
+    ],
+    "legalLinks": [
+      "Imprint",
+      "Terms & Conditions",
+      "Sustainability",
+      "Privacy Policy",
+      "Cookie Policy",
+      "Cookie Settings"
+    ],
+    "affiliations": ["Island Heritage Collection", "Philippine Deluxe Hotels", "DPH Select"],
+    "socialLinks": [
+      { "icon": "Instagram", "href": "#", "label": "Instagram" },
+      { "icon": "Linkedin", "href": "#", "label": "LinkedIn" },
+      { "icon": "Facebook", "href": "#", "label": "Facebook" }
+    ]
+  },
+  "rooms": [
+    {
+      "id": "suite",
+      "name": "Palawan Pool Suite",
+      "roomType": "Suite",
+      "image": "/image/hotel.jpg",
+      "price": 8900,
+      "capacity": 2,
+      "sizeSqm": 34,
+      "description": "Private plunge pool suite with a shaded lanai and ocean glimpses.",
+      "features": [
+        "Ocean side, average 34 sqm",
+        "King bed",
+        "Bathtub and rain shower",
+        "Private plunge pool",
+        "Connecting room available on request"
+      ],
+      "amenities": [
+        { "icon": "Tv", "label": "55\" LED TV" },
+        { "icon": "Bluetooth", "label": "Bluetooth Speaker" },
+        { "icon": "Mountain", "label": "Ocean View" },
+        { "icon": "PawPrint", "label": "Pet Friendly" },
+        { "icon": "Wine", "label": "Minibar" },
+        { "icon": "Usb", "label": "USB/Charger" },
+        { "icon": "Wifi", "label": "WiFi" },
+        { "icon": "Maximize2", "label": "Average Room Size 34 sqm" }
+      ]
+    },
+    {
+      "id": "garden",
+      "name": "Siargao Garden Room",
+      "roomType": "Room",
+      "image": "/image/hotel2.jpg",
+      "price": 6400,
+      "capacity": 2,
+      "sizeSqm": 26,
+      "description": "Ground-floor room opening straight onto tropical gardens.",
+      "features": [
+        "Garden side, average 26 sqm",
+        "King or twin bed",
+        "Bathtub or shower",
+        "No balcony",
+        "No rollaway beds"
+      ],
+      "amenities": [
+        { "icon": "Tv", "label": "48\" LED TV" },
+        { "icon": "Bluetooth", "label": "Bluetooth Speaker" },
+        { "icon": "Mountain", "label": "Garden View" },
+        { "icon": "PawPrint", "label": "Pet Friendly" },
+        { "icon": "Wine", "label": "Minibar" },
+        { "icon": "Usb", "label": "USB/Charger" },
+        { "icon": "Wifi", "label": "WiFi" },
+        { "icon": "Maximize2", "label": "Average Room Size 26 sqm" }
+      ]
+    },
+    {
+      "id": "cliff",
+      "name": "Bohol Cliff House",
+      "roomType": "House",
+      "image": "/image/hotel3.jpg",
+      "price": 7200,
+      "capacity": 4,
+      "sizeSqm": 52,
+      "description": "Two-storey house with panoramic sea views and a private deck.",
+      "features": [
+        "Cliffside, average 52 sqm",
+        "Two king beds",
+        "Bathtub and rain shower",
+        "Private deck with sea view",
+        "Rollaway bed available"
+      ],
+      "amenities": [
+        { "icon": "Tv", "label": "55\" LED TV" },
+        { "icon": "Bluetooth", "label": "Bluetooth Speaker" },
+        { "icon": "Mountain", "label": "Sea View" },
+        { "icon": "PawPrint", "label": "Pet Friendly" },
+        { "icon": "Wine", "label": "Minibar" },
+        { "icon": "Usb", "label": "USB/Charger" },
+        { "icon": "Wifi", "label": "WiFi" },
+        { "icon": "Maximize2", "label": "Average Room Size 52 sqm" }
+      ]
+    },
+    {
+      "id": "villa",
+      "name": "Private Pool Villa",
+      "roomType": "Villa",
+      "image": "/image/hotel4.jpg",
+      "price": 12500,
+      "capacity": 4,
+      "sizeSqm": 68,
+      "description": "Standalone villa with a dedicated butler and full island privacy.",
+      "features": [
+        "Beachfront, average 68 sqm",
+        "King bed plus daybed",
+        "Outdoor rain shower",
+        "Private infinity pool",
+        "Dedicated butler service"
+      ],
+      "amenities": [
+        { "icon": "Tv", "label": "65\" LED TV" },
+        { "icon": "Bluetooth", "label": "Bluetooth Speaker" },
+        { "icon": "Mountain", "label": "Beach View" },
+        { "icon": "PawPrint", "label": "Pet Friendly" },
+        { "icon": "Wine", "label": "Minibar" },
+        { "icon": "Usb", "label": "USB/Charger" },
+        { "icon": "Wifi", "label": "WiFi" },
+        { "icon": "Maximize2", "label": "Average Room Size 68 sqm" }
+      ]
+    }
+  ],
+  "enhancements": [
+    {
+      "id": "transfer",
+      "label": "Airport & pier transfers",
+      "description": "Private transfers arranged for your arrival and departure.",
+      "price": 1500,
+      "icon": "Car"
+    },
+    {
+      "id": "breakfast",
+      "label": "Daily breakfast for two",
+      "description": "A full island breakfast served each morning of your stay.",
+      "price": 900,
+      "icon": "Coffee"
+    },
+    {
+      "id": "tour",
+      "label": "Private island tour",
+      "description": "A half-day boat tour with a local guide.",
+      "price": 3200,
+      "icon": "Compass"
+    },
+    {
+      "id": "checkout",
+      "label": "Late checkout, 3PM",
+      "description": "Extend your last morning until mid-afternoon.",
+      "price": 0,
+      "icon": "Clock3"
+    }
+  ]
+}

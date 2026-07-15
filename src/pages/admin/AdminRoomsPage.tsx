@@ -18,6 +18,7 @@ const EMPTY_FORM: RoomFormInput = {
   description: '',
   roomType: '',
   price: 0,
+  discountPercent: 0,
   capacity: 1,
   sizeSqm: 0,
   features: [],
@@ -85,6 +86,7 @@ export function AdminRoomsPage() {
       description: room.description,
       roomType: room.roomType,
       price: room.price,
+      discountPercent: room.discountPercent,
       capacity: room.capacity,
       sizeSqm: room.sizeSqm,
       features: room.features,
@@ -223,6 +225,7 @@ export function AdminRoomsPage() {
                         <p className="truncate text-sm font-bold uppercase tracking-wide">{room.name}</p>
                         <p className={`truncate text-xs ${isActive ? 'text-linen/70' : 'text-ink/50'}`}>
                           {room.roomType} · PHP {room.price.toLocaleString('en-PH')}
+                          {room.discountPercent > 0 ? ` · ${room.discountPercent}% OFF` : ''}
                         </p>
                       </div>
                       <span
@@ -304,7 +307,7 @@ export function AdminRoomsPage() {
                 />
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-4">
                 <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wide text-ink/60">
                   Price / night
                   <input
@@ -313,6 +316,17 @@ export function AdminRoomsPage() {
                     min={0}
                     value={form.price}
                     onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wide text-ink/60">
+                  Discount %
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.discountPercent}
+                    onChange={(e) => setForm((f) => ({ ...f, discountPercent: Number(e.target.value) }))}
                     className={inputClass()}
                   />
                 </label>

@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronLeft, Check, Expand, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRoomsCatalog } from '../../../context/RoomsCatalogContext';
+import { checkRoomAvailability } from '../../../services/bookingsApi';
 
 const MONTH_LABELS = [
   'January',
@@ -48,6 +49,8 @@ export function RoomStep({
   const { rooms: roomOptions, loading, error } = useRoomsCatalog();
   const [roomType, setRoomType] = useState('All room types');
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
+  const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   const roomTypes = useMemo(
     () => ['All room types', ...new Set(roomOptions.map((room) => room.roomType))],
@@ -55,6 +58,33 @@ export function RoomStep({
   );
   const visibleRooms =
     roomType === 'All room types' ? roomOptions : roomOptions.filter((room) => room.roomType === roomType);
+
+  useEffect(() => {
+    if (!arrival || !departure || roomOptions.length === 0) return;
+    const checkIn = arrival.toISOString().slice(0, 10);
+    const checkOut = departure.toISOString().slice(0, 10);
+
+    let cancelled = false;
+    setCheckingAvailability(true);
+    Promise.all(
+      roomOptions.map(async (room) => {
+        const available = await checkRoomAvailability(room.id, checkIn, checkOut).catch(() => true);
+        return [room.id, available] as const;
+      }),
+    )
+      .then((entries) => {
+        if (cancelled) return;
+        setAvailability(Object.fromEntries(entries));
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingAvailability(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrival, departure, roomOptions]);
 
   if (loading) {
     return <p className="px-5 py-10 text-center text-sm text-ink/60 sm:px-8">Loading rooms…</p>;
@@ -120,6 +150,9 @@ export function RoomStep({
           placeholder="Promo / Group code"
           className="rounded-full border border-ink/15 bg-linen px-4 py-2 text-sm outline-none placeholder:text-ink/40"
         />
+        {checkingAvailability ? (
+          <span className="text-xs uppercase tracking-wide text-ink/40">Checking availability…</span>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 px-5 py-5 sm:px-0">
@@ -180,8 +213,12 @@ export function RoomStep({
       </div>
 
       <div className="flex flex-col divide-y divide-ink/10 border-t border-ink/10 px-5 sm:px-0">
-        {visibleRooms.map((room) => (
-          <div key={room.id} className="grid gap-8 py-10 lg:grid-cols-[1fr_1.25fr]">
+        {visibleRooms.map((room) => {
+          const isAvailable = availability[room.id] !== false;
+          const hasDiscount = room.discountPercent > 0;
+
+          return (
+          <div key={room.id} className={`grid gap-8 py-10 lg:grid-cols-[1fr_1.25fr] ${!isAvailable ? 'opacity-70' : ''}`}>
             <button
               type="button"
               onClick={() => setPreviewImage({ src: room.image, alt: room.name })}
@@ -194,9 +231,22 @@ export function RoomStep({
                 alt={room.name}
                 loading="lazy"
               />
-              <span className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-linen/85 text-ink backdrop-blur transition group-hover:bg-linen">
-                <Expand size={16} strokeWidth={2} />
-              </span>
+              {hasDiscount ? (
+                <span className="absolute left-4 top-4 rounded-full bg-coral px-3 py-1 text-xs font-bold uppercase tracking-wide text-linen">
+                  {room.discountPercent}% Off
+                </span>
+              ) : null}
+              {!isAvailable ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-ink/70">
+                  <span className="rounded-full border border-linen/40 px-5 py-2 text-sm font-bold uppercase tracking-[0.15em] text-linen">
+                    Not Available
+                  </span>
+                </div>
+              ) : (
+                <span className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-linen/85 text-ink backdrop-blur transition group-hover:bg-linen">
+                  <Expand size={16} strokeWidth={2} />
+                </span>
+              )}
             </button>
 
             <div className="flex flex-col">
@@ -222,23 +272,35 @@ export function RoomStep({
               <div className="mt-8 flex items-end justify-between gap-6 border-t border-ink/10 pt-6">
                 <div>
                   <p className="text-xs uppercase tracking-[0.15em] text-ink/50">From</p>
+                  {hasDiscount ? (
+                    <p className="text-sm text-ink/40 line-through">
+                      PHP {room.basePrice.toLocaleString('en-PH')}
+                    </p>
+                  ) : null}
                   <p className="text-2xl font-light">
                     PHP {room.price.toLocaleString('en-PH')}
                     <span className="text-sm text-ink/50"> / Night</span>
                   </p>
                   <p className="text-xs text-ink/45">incl. Taxes &amp; Fees</p>
+                  {!isAvailable ? (
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wide text-coral">
+                      No available room for these dates
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
                   onClick={() => onSelectRoom(room.id)}
-                  className="h-12 shrink-0 rounded-full bg-ink px-8 text-sm font-bold uppercase tracking-[0.1em] text-linen transition hover:bg-palm"
+                  disabled={!isAvailable}
+                  className="h-12 shrink-0 rounded-full bg-ink px-8 text-sm font-bold uppercase tracking-[0.1em] text-linen transition hover:bg-palm disabled:cursor-not-allowed disabled:bg-ink/30 disabled:hover:bg-ink/30"
                 >
-                  View Rates
+                  {isAvailable ? 'View Rates' : 'Unavailable'}
                 </button>
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {previewImage ? (

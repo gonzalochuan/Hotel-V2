@@ -29,7 +29,17 @@ function PanelOverlay({ label, onDiscover }: { label: string; onDiscover: () => 
   );
 }
 
-function VideoStackPanel({ panel, zIndex, onDiscover }: { panel: VideoPanel; zIndex: number; onDiscover: () => void }) {
+function VideoStackPanel({
+  panel,
+  zIndex,
+  onDiscover,
+  id,
+}: {
+  panel: VideoPanel;
+  zIndex: number;
+  onDiscover: () => void;
+  id?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isNear, setIsNear] = useState(false);
@@ -65,7 +75,7 @@ function VideoStackPanel({ panel, zIndex, onDiscover }: { panel: VideoPanel; zIn
   }, [isVisible]);
 
   return (
-    <div ref={containerRef} className="group sticky top-0 h-screen w-full overflow-hidden" style={{ zIndex }}>
+    <div id={id} ref={containerRef} className="group sticky top-0 h-screen w-full overflow-hidden" style={{ zIndex }}>
       {isNear ? (
         <video
           ref={videoRef}
@@ -93,6 +103,7 @@ export function FeaturedStays() {
         panel.type === 'split' ? (
           <div
             key={`split-${index}`}
+            id={panel.items.some((item) => item.label === 'Suites') ? 'suites' : undefined}
             className="sticky top-0 flex h-screen w-full flex-col overflow-hidden sm:flex-row"
             style={{ zIndex: index + 1 }}
           >
@@ -110,7 +121,13 @@ export function FeaturedStays() {
             ))}
           </div>
         ) : (
-          <VideoStackPanel key={`video-${index}`} panel={panel} zIndex={index + 1} onDiscover={open} />
+          <VideoStackPanel
+            key={`video-${index}`}
+            panel={panel}
+            zIndex={index + 1}
+            onDiscover={open}
+            id={panel.label === 'Experience' ? 'experiences' : undefined}
+          />
         ),
       )}
     </section>

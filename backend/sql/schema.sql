@@ -77,3 +77,6 @@ create policy "Users can read their own bookings" on bookings
 
 create policy "Users can create their own bookings" on bookings
   for insert with check (auth.uid() = user_id);
+
+alter table rooms add column if not exists discount_percent numeric not null default 0
+  check (discount_percent >= 0 and discount_percent <= 100);

@@ -57,3 +57,14 @@ export async function getMyBookings(req: Request, res: Response) {
   const bookings = await bookingsService.listMyBookings(req.accessToken!)
   res.json(bookings)
 }
+
+export async function getAvailability(req: Request, res: Response) {
+  const { roomId, checkIn, checkOut } = req.query
+
+  if (typeof roomId !== 'string' || !roomId.trim()) throw new HttpError(400, 'roomId is required')
+  if (typeof checkIn !== 'string' || !checkIn.trim()) throw new HttpError(400, 'checkIn is required')
+  if (typeof checkOut !== 'string' || !checkOut.trim()) throw new HttpError(400, 'checkOut is required')
+
+  const available = await bookingsService.isRoomAvailable(roomId, checkIn, checkOut)
+  res.json({ available })
+}

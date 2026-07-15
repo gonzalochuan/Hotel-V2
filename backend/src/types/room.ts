@@ -19,6 +19,7 @@ export interface Room {
   description: string
   roomType: string
   price: number
+  discountPercent: number
   capacity: number
   sizeSqm: number
   features: string[]
@@ -33,6 +34,7 @@ export interface RoomInput {
   description: string
   roomType: string
   price: number
+  discountPercent?: number
   capacity: number
   sizeSqm: number
   features?: string[]

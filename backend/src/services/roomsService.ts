@@ -8,6 +8,7 @@ interface RoomRow {
   description: string
   room_type: string
   price: number
+  discount_percent: number
   capacity: number
   size_sqm: number
   features: string[] | null
@@ -45,6 +46,7 @@ function mapRoom(row: RoomRow, images: RoomImageRow[]): Room {
     description: row.description,
     roomType: row.room_type,
     price: Number(row.price),
+    discountPercent: Number(row.discount_percent),
     capacity: row.capacity,
     sizeSqm: Number(row.size_sqm),
     features: row.features ?? [],
@@ -97,6 +99,7 @@ export async function createRoom(input: RoomInput): Promise<Room> {
       description: input.description,
       room_type: input.roomType,
       price: input.price,
+      discount_percent: input.discountPercent ?? 0,
       capacity: input.capacity,
       size_sqm: input.sizeSqm,
       features: input.features ?? [],
@@ -115,6 +118,7 @@ export async function updateRoom(id: string, input: Partial<RoomInput>): Promise
   if (input.description !== undefined) updatePayload.description = input.description
   if (input.roomType !== undefined) updatePayload.room_type = input.roomType
   if (input.price !== undefined) updatePayload.price = input.price
+  if (input.discountPercent !== undefined) updatePayload.discount_percent = input.discountPercent
   if (input.capacity !== undefined) updatePayload.capacity = input.capacity
   if (input.sizeSqm !== undefined) updatePayload.size_sqm = input.sizeSqm
   if (input.features !== undefined) updatePayload.features = input.features

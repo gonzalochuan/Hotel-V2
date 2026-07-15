@@ -7,6 +7,10 @@ import { MotionDrawer } from '../ui/MotionDrawer';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { AccountDrawer } from './AccountDrawer';
 
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,7 +48,15 @@ export function SiteHeader() {
 
         <nav className="hidden items-center gap-8 rounded-full border border-ink px-7 py-3 text-sm font-medium text-ink backdrop-blur lg:flex">
           {navigationItems.map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`} className="transition hover:text-palm">
+            <a
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              onClick={(event) => {
+                event.preventDefault();
+                scrollToSection(item.toLowerCase());
+              }}
+              className="transition hover:text-palm"
+            >
               {item}
             </a>
           ))}
@@ -112,7 +124,11 @@ export function SiteHeader() {
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
-                onClick={() => setIsMenuOpen(false)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setIsMenuOpen(false);
+                  scrollToSection(item.toLowerCase());
+                }}
                 className="group flex items-center justify-between border-b border-ink/10 py-5 text-3xl font-light uppercase leading-none text-ink transition hover:text-palm sm:text-4xl"
               >
                 {item}

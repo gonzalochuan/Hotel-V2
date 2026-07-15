@@ -23,6 +23,7 @@ export type ApiRoom = {
   description: string;
   roomType: string;
   price: number;
+  discountPercent: number;
   capacity: number;
   sizeSqm: number;
   features: string[];
@@ -37,6 +38,7 @@ export type RoomFormInput = {
   description: string;
   roomType: string;
   price: number;
+  discountPercent: number;
   capacity: number;
   sizeSqm: number;
   features: string[];
@@ -49,12 +51,18 @@ function primaryImageUrl(room: ApiRoom): string {
 }
 
 export function mapRoomToOption(room: ApiRoom): RoomOption {
+  const discountPercent = room.discountPercent ?? 0;
+  const effectivePrice =
+    discountPercent > 0 ? Math.round(room.price * (1 - discountPercent / 100)) : room.price;
+
   return {
     id: room.id,
     name: room.name,
     roomType: room.roomType,
     image: primaryImageUrl(room),
-    price: room.price,
+    price: effectivePrice,
+    basePrice: room.price,
+    discountPercent,
     capacity: room.capacity,
     sizeSqm: room.sizeSqm,
     description: room.description,

@@ -4,7 +4,7 @@ import * as roomsService from '../services/roomsService.js'
 import type { RoomInput } from '../types/room.js'
 
 function parseRoomInput(body: Record<string, unknown>): RoomInput {
-  const { name, description, roomType, price, capacity, sizeSqm, features, amenities } = body
+  const { name, description, roomType, price, discountPercent, capacity, sizeSqm, features, amenities } = body
 
   if (typeof name !== 'string' || !name.trim()) throw new HttpError(400, 'name is required')
   if (typeof description !== 'string' || !description.trim())
@@ -12,6 +12,9 @@ function parseRoomInput(body: Record<string, unknown>): RoomInput {
   if (typeof roomType !== 'string' || !roomType.trim()) throw new HttpError(400, 'roomType is required')
   if (typeof price !== 'number' || Number.isNaN(price) || price < 0)
     throw new HttpError(400, 'price must be a non-negative number')
+  const resolvedDiscount = discountPercent === undefined ? 0 : discountPercent
+  if (typeof resolvedDiscount !== 'number' || resolvedDiscount < 0 || resolvedDiscount > 100)
+    throw new HttpError(400, 'discountPercent must be a number between 0 and 100')
   if (typeof capacity !== 'number' || !Number.isInteger(capacity) || capacity < 1)
     throw new HttpError(400, 'capacity must be a positive integer')
   if (typeof sizeSqm !== 'number' || Number.isNaN(sizeSqm) || sizeSqm < 0)
@@ -22,6 +25,7 @@ function parseRoomInput(body: Record<string, unknown>): RoomInput {
     description: description.trim(),
     roomType: roomType.trim(),
     price,
+    discountPercent: resolvedDiscount,
     capacity,
     sizeSqm,
     features: Array.isArray(features) ? features.filter((f) => typeof f === 'string') : [],

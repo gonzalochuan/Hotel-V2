@@ -13,6 +13,8 @@ export type RoomOption = {
   roomType: string;
   image: string;
   price: number;
+  basePrice: number;
+  discountPercent: number;
   capacity: number;
   sizeSqm: number;
   description: string;

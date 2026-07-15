@@ -1,4 +1,5 @@
-import { createUserScopedClient } from '../lib/supabaseClient.js'
+import { createUserScopedClient, supabase } from '../lib/supabaseClient.js'
+import { HttpError } from '../middleware/errorHandler.js'
 import type { Booking, BookingInput } from '../types/booking.js'
 
 interface BookingRow {
@@ -47,11 +48,31 @@ function mapBooking(row: BookingRow): Booking {
 
 const BOOKING_SELECT = '*, rooms(name, room_images(url, is_primary, sort_order))'
 
+// Uses the service-role client (bypasses the "own bookings only" RLS policy)
+// since checking whether a room is free for given dates is a cross-user
+// question, not scoped to the requesting user's own bookings.
+export async function isRoomAvailable(roomId: string, checkIn: string, checkOut: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('room_id', roomId)
+    .lt('check_in', checkOut)
+    .gt('check_out', checkIn)
+    .limit(1)
+
+  if (error) throw error
+  return data.length === 0
+}
+
 export async function createBooking(
   accessToken: string,
   userId: string,
   input: BookingInput,
 ): Promise<Booking> {
+  if (!(await isRoomAvailable(input.roomId, input.checkIn, input.checkOut))) {
+    throw new HttpError(409, 'This room is already booked for the selected dates.')
+  }
+
   const client = createUserScopedClient(accessToken)
 
   const { data, error } = await client

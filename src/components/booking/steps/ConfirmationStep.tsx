@@ -3,11 +3,40 @@ import { useEffect, useRef, useState } from 'react';
 import { enhancements, TAX_RATE } from '../../../constants/bookingContent';
 import { useRoomsCatalog } from '../../../context/RoomsCatalogContext';
 import { useAuth } from '../../../context/AuthContext';
-import { createBooking } from '../../../services/bookingsApi';
+import { checkRoomAvailability, createBooking } from '../../../services/bookingsApi';
+import { createPaymentIntent } from '../../../services/paymentsApi';
+import {
+  attachPaymentMethod,
+  createPaymentMethod,
+  getPaymentIntentStatus,
+  type PaymentMethodType,
+} from '../../../services/paymongo';
 import { PaymentMethodSection, type CardDetails, type PaymentMethod } from './PaymentMethodSection';
 import type { GuestDetails } from './DetailsStep';
 
 const EMPTY_CARD_DETAILS: CardDetails = { name: '', number: '', expiry: '', cvv: '' };
+
+const PAYMONGO_TYPE: Record<PaymentMethod, PaymentMethodType> = {
+  visa: 'card',
+  mastercard: 'card',
+  gcash: 'gcash',
+  maya: 'paymaya',
+};
+
+async function pollUntilSettled(intentId: string, clientKey: string, popup: Window | null): Promise<string> {
+  const maxAttempts = 45;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const status = await getPaymentIntentStatus(intentId, clientKey);
+    if (status === 'succeeded' || status === 'awaiting_payment_method') {
+      popup?.close();
+      return status;
+    }
+    if (popup?.closed) return status;
+  }
+  popup?.close();
+  return 'timeout';
+}
 
 const MONTH_LABELS = [
   'January',
@@ -62,6 +91,7 @@ export function ConfirmationStep({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [cardDetails, setCardDetails] = useState<CardDetails>(EMPTY_CARD_DETAILS);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [processingLabel, setProcessingLabel] = useState<string | null>(null);
   const pendingConfirmRef = useRef(false);
 
   const room = roomOptions.find((option) => option.id === roomId) ?? roomOptions[0];
@@ -74,30 +104,22 @@ export function ConfirmationStep({
   const total = subtotal + taxesAndFees + enhancementsTotal;
 
   const submitBooking = async (accessToken: string) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-    try {
-      await createBooking(
-        {
-          roomId: room.id,
-          checkIn: arrival ? arrival.toISOString().slice(0, 10) : '',
-          checkOut: departure ? departure.toISOString().slice(0, 10) : '',
-          adults,
-          children: childrenCount,
-          roomsCount: rooms,
-          enhancements: pickedEnhancements.map((item) => ({ id: item.id, label: item.label, price: item.price })),
-          subtotal,
-          taxes: taxesAndFees,
-          total,
-        },
-        accessToken,
-      );
-      setIsConfirmed(true);
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to confirm booking');
-    } finally {
-      setIsSubmitting(false);
-    }
+    await createBooking(
+      {
+        roomId: room.id,
+        checkIn: arrival ? arrival.toISOString().slice(0, 10) : '',
+        checkOut: departure ? departure.toISOString().slice(0, 10) : '',
+        adults,
+        children: childrenCount,
+        roomsCount: rooms,
+        enhancements: pickedEnhancements.map((item) => ({ id: item.id, label: item.label, price: item.price })),
+        subtotal,
+        taxes: taxesAndFees,
+        total,
+      },
+      accessToken,
+    );
+    setIsConfirmed(true);
   };
 
   const validatePayment = (): string | null => {
@@ -111,7 +133,71 @@ export function ConfirmationStep({
     return null;
   };
 
+  const processPaymentAndBook = async (accessToken: string) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      setProcessingLabel('Checking availability…');
+      const checkIn = arrival ? arrival.toISOString().slice(0, 10) : '';
+      const checkOut = departure ? departure.toISOString().slice(0, 10) : '';
+      const available = await checkRoomAvailability(room.id, checkIn, checkOut);
+      if (!available) {
+        throw new Error('This room is already booked for the selected dates. Please choose different dates.');
+      }
+
+      setProcessingLabel('Processing payment…');
+      const intent = await createPaymentIntent(total, accessToken);
+
+      const pmType = PAYMONGO_TYPE[paymentMethod!];
+      const [expMonthStr, expYearStr] = cardDetails.expiry.split('/');
+      const paymentMethodId = await createPaymentMethod(
+        pmType,
+        { name: pmType === 'card' ? cardDetails.name : guestDetails.name || 'Guest', email: guestDetails.email },
+        pmType === 'card'
+          ? {
+              cardNumber: cardDetails.number,
+              expMonth: Number(expMonthStr),
+              expYear: 2000 + Number(expYearStr),
+              cvc: cardDetails.cvv,
+            }
+          : undefined,
+      );
+
+      const returnUrl = `${window.location.origin}/payment-return.html`;
+      const attachResult = await attachPaymentMethod(intent.id, intent.clientKey, paymentMethodId, returnUrl);
+
+      let finalStatus = attachResult.status;
+      if (attachResult.redirectUrl) {
+        setProcessingLabel(`Waiting for ${paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'maya' ? 'Maya' : 'authorization'}…`);
+        const width = 480;
+        const height = 680;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          attachResult.redirectUrl,
+          'paymongo-checkout',
+          `width=${width},height=${height},left=${left},top=${top}`,
+        );
+        if (!popup) throw new Error('Popup blocked. Please allow popups for this site and try again.');
+        finalStatus = await pollUntilSettled(intent.id, intent.clientKey, popup);
+      }
+
+      if (finalStatus !== 'succeeded') {
+        throw new Error('Payment was not completed. Please try again.');
+      }
+
+      setProcessingLabel('Finalizing booking…');
+      await submitBooking(accessToken);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setIsSubmitting(false);
+      setProcessingLabel(null);
+    }
+  };
+
   const handleConfirm = async () => {
+    if (isSubmitting) return;
     const validationMessage = validatePayment();
     if (validationMessage) {
       setPaymentError(validationMessage);
@@ -125,7 +211,7 @@ export function ConfirmationStep({
       return;
     }
 
-    await submitBooking(session.access_token);
+    await processPaymentAndBook(session.access_token);
   };
 
   // Once sign-in completes (popup closes, session appears), automatically
@@ -133,7 +219,7 @@ export function ConfirmationStep({
   useEffect(() => {
     if (session && pendingConfirmRef.current) {
       pendingConfirmRef.current = false;
-      void submitBooking(session.access_token);
+      void processPaymentAndBook(session.access_token);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
@@ -186,7 +272,12 @@ export function ConfirmationStep({
                   {childrenCount > 0 ? ` · ${childrenCount} child${childrenCount > 1 ? 'ren' : ''}` : ''}
                 </p>
               </div>
-              <p className="text-sm font-bold text-ink/70">PHP {room.price.toLocaleString('en-PH')} / night</p>
+              <div className="text-right">
+                {room.discountPercent > 0 ? (
+                  <p className="text-xs text-ink/40 line-through">PHP {room.basePrice.toLocaleString('en-PH')}</p>
+                ) : null}
+                <p className="text-sm font-bold text-ink/70">PHP {room.price.toLocaleString('en-PH')} / night</p>
+              </div>
             </div>
           </div>
 
@@ -278,7 +369,11 @@ export function ConfirmationStep({
             className="mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-ink text-base font-bold text-linen transition hover:bg-palm disabled:opacity-60"
           >
             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : null}
-            {isSubmitting ? 'Confirming…' : session ? 'Confirm Booking' : 'Sign in with Google to Confirm'}
+            {isSubmitting
+              ? processingLabel ?? 'Confirming…'
+              : session
+                ? 'Confirm & Pay'
+                : 'Sign in with Google to Confirm'}
           </button>
         </div>
       </div>
